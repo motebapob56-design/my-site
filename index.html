@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>社区论坛 - 多角色权限系统</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+    /* 导航栏 */
+    .navbar { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 14px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .nav-inner { max-width: 900px; margin: 0 auto; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 20px; font-weight: 700; }
+    .user-area { display: flex; align-items: center; gap: 12px; }
+    .role-badge { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+    .role-admin { background: #fef3c7; color: #92400e; }
+    .role-user { background: #dbeafe; color: #1e40af; }
+    .role-guest { background: #f3f4f6; color: #6b7280; }
+    .btn { padding: 8px 18px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { transform: scale(0.96); }
+    .btn-primary { background: #3b82f6; color: #fff; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-outline { background: #fff; color: #374151; border: 2px solid #d1d5db; }
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    /* 登录面板 */
+    .login-panel { background: #fff; border-radius: 16px; padding: 32px; margin: 40px auto; max-width: 500px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center; }
+    .login-panel h2 { margin-bottom: 24px; }
+    .role-cards { display: flex; gap: 16px; margin-bottom: 24px; }
+    .role-card { flex: 1; padding: 20px; border: 2px solid #e5e7eb; border-radius: 12px; cursor: pointer; transition: all 0.2s; }
+    .role-card:hover { border-color: #3b82f6; }
+    .role-card.selected { border-color: #3b82f6; background: #eff6ff; }
+    .role-card .icon { font-size: 36px; margin-bottom: 8px; }
+    .role-card .name { font-weight: 600; margin-bottom: 4px; }
+    .role-card .desc { font-size: 12px; color: #6b7280; }
+
+    /* 帖子区域 */
+    .section { margin: 32px 0; }
+    .section-title { font-size: 22px; font-weight: 700; margin-bottom: 16px; }
+    .post-form { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+    .post-form input, .post-form textarea { width: 100%; padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-size: 14px; margin-bottom: 10px; outline: none; font-family: inherit; }
+    .post-form input:focus, .post-form textarea:focus { border-color: #3b82f6; }
+    .post-form textarea { resize: vertical; min-height: 80px; }
+    .post-card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); position: relative; }
+    .post-card h3 { font-size: 18px; margin-bottom: 8px; }
+    .post-card .post-meta { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
+    .post-card .post-content { color: #374151; line-height: 1.6; }
+    .post-actions { margin-top: 12px; display: flex; gap: 8px; }
+
+    /* 管理面板 */
+    .admin-panel { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid #f59e0b; }
+    .admin-panel h3 { color: #92400e; margin-bottom: 12px; }
+    .user-list { display: flex; flex-direction: column; gap: 8px; }
+    .user-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9fafb; border-radius: 8px; }
+    .user-info { display: flex; align-items: center; gap: 8px; }
+
+    /* 响应式 */
+    @media (max-width: 768px) {
+      .role-cards { flex-direction: column; }
+      .post-actions { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== 导航栏 ========== -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <div class="logo">🏠 社区论坛</div>
+    <div class="user-area" id="userArea">
+      <span id="roleDisplay">未登录</span>
+      <button class="btn btn-outline" onclick="showLogin()">切换账号</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- ========== 登录面板 ========== -->
+  <div class="login-panel" id="loginPanel" style="display:none;">
+    <h2>选择登录角色</h2>
+    <div class="role-cards">
+      <div class="role-card" onclick="selectRole('admin')" id="card-admin">
+        <div class="icon">👑</div>
+        <div class="name">管理员</div>
+        <div class="desc">可管理所有帖子和用户</div>
+      </div>
+      <div class="role-card" onclick="selectRole('user')" id="card-user">
+        <div class="icon">👤</div>
+        <div class="name">普通用户</div>
+        <div class="desc">可发帖和编辑自己的帖子</div>
+      </div>
+      <div class="role-card" onclick="selectRole('guest')" id="card-guest">
+        <div class="icon">👀</div>
+        <div class="name">游客</div>
+        <div class="desc">只能浏览内容</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="login()">确认登录</button>
+  </div>
+
+  <!-- ========== 管理面板（仅管理员可见） ========== -->
+  <div class="admin-panel section" id="adminPanel" style="display:none;">
+    <h3>🔧 管理面板 - 用户管理</h3>
+    <div class="user-list" id="userList"></div>
+  </div>
+
+  <!-- ========== 发帖区域 ========== -->
+  <div class="section">
+    <div class="section-title">📝 帖子列表</div>
+    
+    <!-- 发帖表单（游客不可见） -->
+    <div class="post-form" id="postForm" style="display:none;">
+      <input type="text" id="postTitle" placeholder="标题" maxlength="50" />
+      <textarea id="postContent" placeholder="说点什么吧..." maxlength="500"></textarea>
+      <button class="btn btn-primary" onclick="createPost()">发布帖子</button>
+    </div>
+
+    <!-- 帖子列表 -->
+    <div id="postList"></div>
+  </div>
+
+</div>
+
+<script>
+// ========== 数据存储 ==========
+// 使用 localStorage 持久化
+function getData() {
+  var data = localStorage.getItem('forumData');
+  if (data) return JSON.parse(data);
+  // 默认数据
+  return {
+    posts: [
+      { id: 1, userId: 'admin', username: '管理员', title: '欢迎来到社区！', content: '这是第一条帖子。管理员可以删除任何帖子，普通用户只能编辑自己的帖子，游客只能浏览。试试切换不同角色体验吧！', time: '2026-05-14 10:30' },
+      { id: 2, userId: 'user1', username: '小明', title: '大家好，我是新用户', content: '刚注册，请大家多多关照！', time: '2026-05-14 11:00' },
+    ],
+    users: [
+      { id: 'admin', username: '管理员', role: 'admin', active: true },
+      { id: 'user1', username: '小明', role: 'user', active: true },
+    ],
+    nextPostId: 3
+  };
+}
+
+function saveData(data) {
+  localStorage.setItem('forumData', JSON.stringify(data));
+}
+
+// ========== 当前用户状态 ==========
+var currentUser = null; // { id, username, role }
+var selectedRole = null;
+
+// ========== 初始化 ==========
+function init() {
+  var savedUser = localStorage.getItem('currentUser');
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+  }
+  updateUI();
+  renderPosts();
+  renderUsers();
+}
+
+function updateUI() {
+  var roleDisplay = document.getElementById('roleDisplay');
+  var postForm = document.getElementById('postForm');
+  var adminPanel = document.getElementById('adminPanel');
+  var loginPanel = document.getElementById('loginPanel');
+
+  if (currentUser) {
+    if (currentUser.role === 'admin') {
+      roleDisplay.innerHTML = '<span class="role-badge role-admin">👑 管理员：' + currentUser.username + '</span>';
+      postForm.style.display = 'block';
+      adminPanel.style.display = 'block';
+    } else {
+      roleDisplay.innerHTML = '<span class="role-badge role-user">👤 用户：' + currentUser.username + '</span>';
+      postForm.style.display = 'block';
+      adminPanel.style.display = 'none';
+    }
+    loginPanel.style.display = 'none';
+  } else {
+    roleDisplay.innerHTML = '<span class="role-badge role-guest">👀 游客</span>';
+    postForm.style.display = 'none';
+    adminPanel.style.display = 'none';
+    loginPanel.style.display = 'block';
+  }
+}
+
+// ========== 登录系统 ==========
+function showLogin() {
+  document.getElementById('loginPanel').style.display = 'block';
+  selectedRole = null;
+  document.querySelectorAll('.role-card').forEach(function(card) {
+    card.classList.remove('selected');
+  });
+}
+
+function selectRole(role) {
+  selectedRole = role;
+  document.querySelectorAll('.role-card').forEach(function(card) {
+    card.classList.remove('selected');
+  });
+  document.getElementById('card-' + role).classList.add('selected');
+}
+
+function login() {
+  if (!selectedRole) {
+    alert('请先选择一个角色！');
+    return;
+  }
+  
+  if (selectedRole === 'guest') {
+    currentUser = null;
+    localStorage.removeItem('currentUser');
+  } else if (selectedRole === 'admin') {
+    currentUser = { id: 'admin', username: '管理员', role: 'admin' };
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+  } else {
+    // 随机生成一个用户名
+    var names = ['小明', '小红', '小刚', '阿花', '大壮', '小美'];
+    var randomName = names[Math.floor(Math.random() * names.length)] + Math.floor(Math.random() * 100);
+    var userId = 'user_' + Date.now();
+    currentUser = { id: userId, username: randomName, role: 'user' };
+    
+    // 添加到用户列表
+    var data = getData();
+    data.users.push({ id: userId, username: randomName, role: 'user', active: true });
+    saveData(data);
+    
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+  }
+  
+  updateUI();
+  renderPosts();
+  renderUsers();
+}
+
+// ========== 发帖 ==========
+function createPost() {
+  if (!currentUser) return;
+  
+  var title = document.getElementById('postTitle').value.trim();
+  var content = document.getElementById('postContent').value.trim();
+  
+  if (!title || !content) {
+    alert('标题和内容不能为空！');
+    return;
+  }
+  
+  var data = getData();
+  var now = new Date();
+  var timeStr = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  
+  data.posts.unshift({
+    id: data.nextPostId,
+    userId: currentUser.id,
+    username: currentUser.username,
+    title: title,
+    content: content,
+    time: timeStr
+  });
+  data.nextPostId++;
+  saveData(data);
+  
+  document.getElementById('postTitle').value = '';
+  document.getElementById('postContent').value = '';
+  renderPosts();
+}
+
+// ========== 删除帖子 ==========
+function deletePost(postId) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('只有管理员可以删除帖子！');
+    return;
+  }
+  
+  if (!confirm('确定删除这条帖子吗？')) return;
+  
+  var data = getData();
+  data.posts = data.posts.filter(function(p) { return p.id !== postId; });
+  saveData(data);
+  renderPosts();
+}
+
+// ========== 编辑帖子 ==========
+function editPost(postId) {
+  var data = getData();
+  var post = data.posts.find(function(p) { return p.id === postId; });
+  
+  if (!post) return;
+  
+  // 检查权限：管理员可以编辑所有，普通用户只能编辑自己的
+  if (currentUser.role !== 'admin' && post.userId !== currentUser.id) {
+    alert('你只能编辑自己的帖子！');
+    return;
+  }
+  
+  var newTitle = prompt('修改标题：', post.title);
+  if (newTitle === null) return;
+  var newContent = prompt('修改内容：', post.content);
+  if (newContent === null) return;
+  
+  post.title = newTitle.trim() || post.title;
+  post.content = newContent.trim() || post.content;
+  saveData(data);
+  renderPosts();
+}
+
+// ========== 封禁/解封用户 ==========
+function toggleBanUser(userId) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('只有管理员可以管理用户！');
+    return;
+  }
+  
+  var data = getData();
+  var user = data.users.find(function(u) { return u.id === userId; });
+  if (!user) return;
+  
+  user.active = !user.active;
+  saveData(data);
+  renderUsers();
+  
+  alert(user.active ? '已解封用户：' + user.username : '已封禁用户：' + user.username + '（该用户无法登录）');
+}
+
+// ========== 渲染帖子列表 ==========
+function renderPosts() {
+  var data = getData();
+  var postList = document.getElementById('postList');
+  var html = '';
+  
+  data.posts.forEach(function(post) {
+    var canEdit = currentUser && (currentUser.role === 'admin' || post.userId === currentUser.id);
+    var canDelete = currentUser && currentUser.role === 'admin';
+    
+    html += '<div class="post-card">';
+    html += '<h3>' + post.title + '</h3>';
+    html += '<div class="post-meta">👤 ' + post.username + ' · 🕒 ' + post.time + '</div>';
+    html += '<div class="post-content">' + post.content + '</div>';
+    html += '<div class="post-actions">';
+    
+    if (canEdit) {
+      html += '<button class="btn btn-outline btn-sm" onclick="editPost(' + post.id + ')">✏️ 编辑</button>';
+    }
+    if (canDelete) {
+      html += '<button class="btn btn-danger btn-sm" onclick="deletePost(' + post.id + ')">🗑️ 删除</button>';
+    }
+    
+    html += '</div></div>';
+  });
+  
+  if (data.posts.length === 0) {
+    html = '<p style="text-align:center;color:#9ca3af;padding:40px;">还没有帖子，管理员或用户来发第一条吧！</p>';
+  }
+  
+  postList.innerHTML = html;
+}
+
+// ========== 渲染用户列表（管理员面板） ==========
+function renderUsers() {
+  var userList = document.getElementById('userList');
+  if (!currentUser || currentUser.role !== 'admin') {
+    userList.innerHTML = '';
+    return;
+  }
+  
+  var data = getData();
+  var html = '';
+  
+  data.users.forEach(function(user) {
+    if (user.role === 'admin') return; // 不显示管理员自己
+    
+    html += '<div class="user-item">';
+    html += '<div class="user-info">';
+    html += '<span>' + user.username + '</span>';
+    html += '<span class="role-badge role-user" style="font-size:11px;">用户</span>';
+    html += user.active ? '<span style="color:#10b981;font-size:12px;">✅ 正常</span>' : '<span style="color:#ef4444;font-size:12px;">🚫 已封禁</span>';
+    html += '</div>';
+    html += '<button class="btn btn-sm ' + (user.active ? 'btn-danger' : 'btn-primary') + '" onclick="toggleBanUser(\'' + user.id + '\')">';
+    html += user.active ? '封禁' : '解封';
+    html += '</button>';
+    html += '</div>';
+  });
+  
+  userList.innerHTML = html;
+}
+
+// ========== 启动 ==========
+init();
+</script>
+
+</body>
+</html>
+    
+  </body>
+  
+</html>
